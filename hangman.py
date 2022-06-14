@@ -44,7 +44,7 @@ class start_hangman:
             for col in row:
                 output_line += col;
             return_string += output_line + "\n"
-        return_string += 'Guessed Letters: ' + ", ".join(self.guessed_letters) + "\n"
+        return_string += 'Wrong Guesses: ' + ", ".join(self.guessed_letters) + "\n"
         return_string += 'Your Word: ' + "".join(self.word_status) + "\n"
         return return_string
 
