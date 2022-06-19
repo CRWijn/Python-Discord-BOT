@@ -16,6 +16,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service as ChromeService
 from subprocess import CREATE_NO_WINDOW
+from datetime import datetime
 
 
 load_dotenv('token.env')
@@ -33,60 +34,68 @@ async def on_ready():
     channel = bot.get_channel(FREE_GAME_CHANNEL_ID)
     test_channel = bot.get_channel(TEST_CHANNEL_ID)
     while (True):
+        now = datetime.now()
+        print("\nCheck at: " + str(now).split(".")[0] + "\n")
         print("Doing EPIC STORE Check")
-        EGS_obj = epicstore_api.api.EpicGamesStoreAPI()
-        free_games = EGS_obj.get_free_games()
+        free_games_available = False
+        try:
+            EGS_obj = epicstore_api.api.EpicGamesStoreAPI()
+            free_games = EGS_obj.get_free_games()
+            free_games_available = True
+        except:
+            print("Failed to get epic store games...")
 
-        for game in free_games['data']['Catalog']['searchStore']['elements']:
-            if game['promotions'] is not None:
-                if game['promotions']['promotionalOffers']:
-                    try:
-                        found = False
-                        with open('free_games.txt') as f:
-                            for line in f:
-                                if line == game['title'] + "\n":
-                                    found = True
-                            f.close()
-                        if not found:
-                            with open('free_games.txt', 'a') as f:
+        if free_games_available:
+            for game in free_games['data']['Catalog']['searchStore']['elements']:
+                if game['promotions'] is not None:
+                    if game['promotions']['promotionalOffers']:
+                        try:
+                            found = False
+                            with open('free_games.txt') as f:
+                                for line in f:
+                                    if line == game['title'] + "\n":
+                                        found = True
+                                f.close()
+                            if not found:
+                                with open('free_games.txt', 'a') as f:
+                                    f.write(game['title'] + "\n")
+                                    f.close()
+                                #ANNOUNCEMENT
+                                await channel.send("<@&867045278694637578>" + " " + game['title'] + " is free to keep on the epic store!")
+                                if "\home" in game['productSlug']:
+                                    slug = game['productSlug'].split("\home")[0]
+                                    await channel.send("https://store.epicgames.com/en-US/p/" + slug)
+                                else:
+                                    await channel.send("https://store.epicgames.com/en-US/p/" + game['productSlug'])
+                        except FileNotFoundError:
+                            with open('free_games.txt', 'w') as f:
                                 f.write(game['title'] + "\n")
                                 f.close()
-                            #ANNOUNCEMENT
                             await channel.send("<@&867045278694637578>" + " " + game['title'] + " is free to keep on the epic store!")
                             if "\home" in game['productSlug']:
                                 slug = game['productSlug'].split("\home")[0]
                                 await channel.send("https://store.epicgames.com/en-US/p/" + slug)
                             else:
                                 await channel.send("https://store.epicgames.com/en-US/p/" + game['productSlug'])
+                else:
+                    try:
+                        found = False
+                        with open('free_games.txt') as f:
+                            fdata = f.read()
+                            f.close()
+                        with open('free_games.txt') as f:
+                            for line in f:
+                                if line == game['title'] + "\n":
+                                    found = True
+                            f.close()
+                        if found:
+                            fdata = fdata.replace(game['title'] + "\n", "")
+                            with open('free_games.txt', 'w') as f:
+                                f.write(fdata)
+                                f.close()
                     except FileNotFoundError:
                         with open('free_games.txt', 'w') as f:
-                            f.write(game['title'] + "\n")
                             f.close()
-                        await channel.send("<@&867045278694637578>" + " " + game['title'] + " is free to keep on the epic store!")
-                        if "\home" in game['productSlug']:
-                            slug = game['productSlug'].split("\home")[0]
-                            await channel.send("https://store.epicgames.com/en-US/p/" + slug)
-                        else:
-                            await channel.send("https://store.epicgames.com/en-US/p/" + game['productSlug'])
-            else:
-                try:
-                    found = False
-                    with open('free_games.txt') as f:
-                        fdata = f.read()
-                        f.close()
-                    with open('free_games.txt') as f:
-                        for line in f:
-                            if line == game['title'] + "\n":
-                                found = True
-                        f.close()
-                    if found:
-                        fdata = fdata.replace(game['title'] + "\n", "")
-                        with open('free_games.txt', 'w') as f:
-                            f.write(fdata)
-                            f.close()
-                except FileNotFoundError:
-                    with open('free_games.txt', 'w') as f:
-                        f.close()
 
         print("Beginning Steam Check")
         chromeOptions = Options()
